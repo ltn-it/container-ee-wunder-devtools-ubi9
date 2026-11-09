@@ -631,6 +631,7 @@ USER 0
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Base tools you *actually* need at runtime.
+# Native libraries also support repository-pinned headless Chromium validation.
 # UBI 9 does not publish qemu-img/libguestfs packages. Use one immutable,
 # official CentOS Stream 9 production compose only for VM image tooling so
 # public GitHub builds neither depend on RHEL host entitlement nor race mutable
@@ -660,7 +661,9 @@ RUN dnf --setopt=retries=2 -y update && \
       > /etc/yum.repos.d/centos-stream-vm-image-tools.repo && \
     dnf --setopt=retries=2 -y install --allowerasing --setopt=install_weak_deps=False \
       bash git openssh-clients rsync which findutils ca-certificates \
-      rpm-build && \
+      rpm-build \
+      nspr nss atk at-spi2-atk at-spi2-core cups-libs libxkbcommon \
+      alsa-lib mesa-libgbm pango libXcomposite libXdamage libXfixes libXrandr && \
     dnf --setopt=retries=2 -y install --allowerasing --setopt=install_weak_deps=False \
       --enablerepo="centos-stream-compose-baseos" \
       --enablerepo="centos-stream-compose-appstream" \
