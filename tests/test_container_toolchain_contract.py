@@ -148,9 +148,10 @@ class ContainerToolchainContractTests(unittest.TestCase):
             "ARG VNU_JRE_AMD64_SHA256=ef491a51a46ef90cc47fbc4abb219fde32483ff91be5ec66ddc896df43524b27",
             "ARG VNU_JRE_ARM64_SHA256=9d14a95e07c44bc48666625162baf40db9da4dcb192bfc3e43047790693061a2",
             "ARG GO_VERSION=1.26.10",
-            "ARG GO_X_CRYPTO_VERSION=0.57.0",
-            "ARG GO_X_NET_VERSION=0.60.0",
-            "ARG GO_X_TEXT_VERSION=0.42.0",
+            "ARG GO_X_CRYPTO_VERSION=0.58.0",
+            "ARG GO_X_NET_VERSION=0.62.0",
+            "ARG GO_X_TEXT_VERSION=0.43.0",
+            "ARG GO_JOSE_VERSION=4.1.6",
             "ARG GO_X_MOD_VERSION=0.40.0",
             "ARG GO_GRPC_VERSION=1.83.2",
             "ARG TF_SOURCE_COMMIT=87488977e32a400445e0c0b4d95c0713a5eee941",
@@ -198,7 +199,7 @@ class ContainerToolchainContractTests(unittest.TestCase):
             "brace-expansion": "5.0.12",
             "js-yaml": "4.3.2",
             "smol-toml": "1.9.0",
-            "undici": "6.28.1",
+            "undici": "6.29.1",
         }
         for package, version in expected_security_versions.items():
             self.assertEqual(version, container_package["dependencies"][package])
@@ -387,6 +388,7 @@ class ContainerToolchainContractTests(unittest.TestCase):
             "GO_X_CRYPTO_VERSION",
             "GO_X_NET_VERSION",
             "GO_X_TEXT_VERSION",
+            "GO_JOSE_VERSION",
         ):
             self.assertIn(version_argument, serialized_managers)
 
@@ -394,6 +396,7 @@ class ContainerToolchainContractTests(unittest.TestCase):
             "golang.org/x/crypto": "GO_X_CRYPTO_VERSION",
             "golang.org/x/net": "GO_X_NET_VERSION",
             "golang.org/x/text": "GO_X_TEXT_VERSION",
+            "github.com/go-jose/go-jose/v4": "GO_JOSE_VERSION",
         }
         for dependency, argument in expected_go_overrides.items():
             managers = [

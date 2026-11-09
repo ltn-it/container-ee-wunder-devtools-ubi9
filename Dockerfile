@@ -9,10 +9,11 @@ ARG TARGETARCH
 ARG GO_VERSION=1.26.10
 ARG GO_AMD64_SHA256=ccfe7ae822d2c2f41f4fe7c956199967a4dac22d0ee0d2b2bfdb440aab3b20c5
 ARG GO_ARM64_SHA256=3f4227ce7b206a513e794f1393adb473a07b46e94d18bd15d1c684bbb7319797
-ARG GO_X_CRYPTO_VERSION=0.57.0
+ARG GO_X_CRYPTO_VERSION=0.58.0
 ARG GO_X_MOD_VERSION=0.40.0
-ARG GO_X_NET_VERSION=0.60.0
-ARG GO_X_TEXT_VERSION=0.42.0
+ARG GO_X_NET_VERSION=0.62.0
+ARG GO_X_TEXT_VERSION=0.43.0
+ARG GO_JOSE_VERSION=4.1.6
 ARG GO_GRPC_VERSION=1.83.2
 ARG GO_KLAUSPOST_COMPRESS_VERSION=1.18.7
 
@@ -79,6 +80,7 @@ RUN curl -fsSLo /tmp/cosign-tag.json \
       "-replace=github.com/sigstore/fulcio=github.com/sigstore/fulcio@v${COSIGN_FULCIO_VERSION}" \
       "-replace=github.com/sigstore/rekor=github.com/sigstore/rekor@v${COSIGN_REKOR_VERSION}" \
       "-replace=github.com/klauspost/compress=github.com/klauspost/compress@v${GO_KLAUSPOST_COMPRESS_VERSION}" \
+      "-replace=github.com/go-jose/go-jose/v4=github.com/go-jose/go-jose/v4@v${GO_JOSE_VERSION}" \
       "-replace=golang.org/x/crypto=golang.org/x/crypto@v${GO_X_CRYPTO_VERSION}" \
       "-replace=golang.org/x/mod=golang.org/x/mod@v${GO_X_MOD_VERSION}" \
       "-replace=golang.org/x/net=golang.org/x/net@v${GO_X_NET_VERSION}" \
@@ -109,6 +111,7 @@ RUN --network=none cd /tmp/cosign-source && \
       "github.com/sigstore/fulcio@v${COSIGN_FULCIO_VERSION}" \
       "github.com/sigstore/rekor@v${COSIGN_REKOR_VERSION}" \
       "github.com/klauspost/compress@v${GO_KLAUSPOST_COMPRESS_VERSION}" \
+      "github.com/go-jose/go-jose/v4@v${GO_JOSE_VERSION}" \
       "golang.org/x/crypto@v${GO_X_CRYPTO_VERSION}" \
       "golang.org/x/mod@v${GO_X_MOD_VERSION}" \
       "golang.org/x/net@v${GO_X_NET_VERSION}" \
@@ -131,7 +134,7 @@ ARG INCUS_VERSION=7.0.2
 ARG INCUS_SOURCE_COMMIT=01f81e5e607bbb5818410318e4b3496ad1820824
 ARG INCUS_SOURCE_SHA256=f2319b13151c3b4181b025a55e4199d60a1c829a24e422d8c6448a63da8a0ed9
 
-# Build only the Incus client with its unchanged upstream module lock.
+# Build only the pinned Incus client with the explicit x/net security fix.
 # This supplies no daemon, connection configuration, socket or credentials.
 RUN mkdir -p /out && \
     curl -fsSLo /tmp/incus.tar.gz \
@@ -141,7 +144,9 @@ RUN mkdir -p /out && \
     tar -xzf /tmp/incus.tar.gz --strip-components=1 -C /tmp/incus-source && \
     cd /tmp/incus-source && \
     grep -Fx "var Version = \"${INCUS_VERSION}\"" internal/version/flex.go && \
+    go mod edit "-replace=golang.org/x/net=golang.org/x/net@v${GO_X_NET_VERSION}" && \
     python3 /usr/local/lib/download_go_modules.py && \
+    GOPROXY=off go mod tidy && \
     GOPROXY=off go mod verify && \
     CGO_ENABLED=0 GOPROXY=off go build \
       -mod=readonly -trimpath -buildvcs=false -ldflags="-s -w" \
@@ -185,6 +190,7 @@ RUN curl -fsSLo /tmp/terraform.tar.gz \
     cd /tmp/terraform-source && \
     go mod edit "-require=google.golang.org/grpc@v${GO_GRPC_VERSION}" && \
     go mod edit \
+      "-replace=github.com/go-jose/go-jose/v4=github.com/go-jose/go-jose/v4@v${GO_JOSE_VERSION}" \
       "-replace=golang.org/x/crypto=golang.org/x/crypto@v${GO_X_CRYPTO_VERSION}" \
       "-replace=golang.org/x/net=golang.org/x/net@v${GO_X_NET_VERSION}" \
       "-replace=golang.org/x/text=golang.org/x/text@v${GO_X_TEXT_VERSION}" && \
@@ -210,6 +216,7 @@ RUN curl -fsSLo /tmp/packer.tar.gz \
     tar -xzf /tmp/packer.tar.gz --strip-components=1 -C /tmp/packer-source && \
     cd /tmp/packer-source && \
     go mod edit \
+      "-replace=github.com/go-jose/go-jose/v4=github.com/go-jose/go-jose/v4@v${GO_JOSE_VERSION}" \
       "-replace=golang.org/x/crypto=golang.org/x/crypto@v${GO_X_CRYPTO_VERSION}" \
       "-replace=golang.org/x/net=golang.org/x/net@v${GO_X_NET_VERSION}" \
       "-replace=golang.org/x/text=golang.org/x/text@v${GO_X_TEXT_VERSION}" && \
@@ -226,6 +233,7 @@ RUN curl -fsSLo /tmp/packer.tar.gz \
 
 RUN /usr/local/lib/container-build-go-tool.sh \
       github.com/terraform-linters/tflint "v${TFLINT_VERSION}" . tflint \
+      "github.com/go-jose/go-jose/v4@v${GO_JOSE_VERSION}" \
       "golang.org/x/mod@v${GO_X_MOD_VERSION}" \
       "golang.org/x/net@v${GO_X_NET_VERSION}" \
       "google.golang.org/grpc@v${GO_GRPC_VERSION}" \
@@ -266,6 +274,7 @@ RUN curl -fsSLo /tmp/docker-cli.tar.gz \
     cp vendor.mod go.mod && \
     cp vendor.sum go.sum && \
     GOFLAGS=-mod=mod go get \
+      "github.com/go-jose/go-jose/v4@v${GO_JOSE_VERSION}" \
       "golang.org/x/net@v${GO_X_NET_VERSION}" \
       "google.golang.org/grpc@v${GO_GRPC_VERSION}" && \
     test "$(GOFLAGS=-mod=mod go list -m -f '{{.Version}}' golang.org/x/net)" = \
@@ -310,7 +319,7 @@ RUN set -euo pipefail; \
     done
 
 RUN set -euo pipefail; \
-    for binary in packer terraform tflint terraform-docs helm gh docker docker-compose; do \
+    for binary in packer terraform tflint terraform-docs helm gh docker docker-compose incus; do \
       effective_version="$( \
         go version -m "/out/${binary}" | \
           awk -v module='golang.org/x/net' ' \
@@ -322,6 +331,23 @@ RUN set -euo pipefail; \
       if [ "${effective_version}" != "v${GO_X_NET_VERSION}" ]; then \
         printf 'ERROR: %s links golang.org/x/net %s, expected v%s\n' \
           "${binary}" "${effective_version:-<missing>}" "${GO_X_NET_VERSION}" >&2; \
+        exit 1; \
+      fi; \
+    done
+
+RUN set -euo pipefail; \
+    for binary in packer terraform tflint docker; do \
+      effective_version="$( \
+        go version -m "/out/${binary}" | \
+          awk -v module='github.com/go-jose/go-jose/v4' ' \
+            $1 == "dep" && $2 == module { version = $3 } \
+            $1 == "=>" && $2 == module { version = $3 } \
+            END { print version } \
+          ' \
+      )"; \
+      if [ "${effective_version}" != "v${GO_JOSE_VERSION}" ]; then \
+        printf 'ERROR: %s links go-jose/v4 %s, expected v%s\n' \
+          "${binary}" "${effective_version:-<missing>}" "${GO_JOSE_VERSION}" >&2; \
         exit 1; \
       fi; \
     done
