@@ -286,6 +286,13 @@
       "allowedVersions": ">=11.18.0 <12.0.0"
     },
     {
+      "description": "Keep the repository npm installer on its supported major",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["container-toolchain/package.json"],
+      "matchDepNames": ["npm-repository"],
+      "allowedVersions": ">=11.19.1 <12.0.0"
+    },
+    {
       "description": "Maintain Source-owned Python inputs and hash locks in shared-assets-lit only",
       "matchFileNames": [
         "requirements.in",

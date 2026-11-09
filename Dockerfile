@@ -386,7 +386,7 @@ RUN source /usr/local/lib/container-download-verified.sh && \
     /opt/node/bin/corepack "pnpm@${pnpm_version}" install \
       --frozen-lockfile --ignore-scripts --strict-peer-dependencies \
       --store-dir /tmp/pnpm-store && \
-    for npm_tree in npm npm-website; do \
+    for npm_tree in npm npm-website npm-repository; do \
       for package in brace-expansion ip-address tar undici; do \
         version="$(/opt/node/bin/node -p \
           'require(process.argv[1]).version' \
@@ -404,13 +404,15 @@ RUN source /usr/local/lib/container-download-verified.sh && \
       version="$(/opt/node/bin/node -p \
         'require(process.argv[1]).version' \
         "/opt/node-toolchain/node_modules/${package}/package.json")" && \
-      rm -rf "/opt/node-toolchain/node_modules/npm-website/node_modules/${package}" && \
-      cp -aL "/opt/node-toolchain/node_modules/${package}" \
-        "/opt/node-toolchain/node_modules/npm-website/node_modules/${package}" && \
-      test "$(/opt/node/bin/node -p \
-        'require(process.argv[1]).version' \
-        "/opt/node-toolchain/node_modules/npm-website/node_modules/${package}/package.json")" \
-          = "${version}" || exit 1; \
+      for npm_tree in npm-website npm-repository; do \
+        rm -rf "/opt/node-toolchain/node_modules/${npm_tree}/node_modules/${package}" && \
+        cp -aL "/opt/node-toolchain/node_modules/${package}" \
+          "/opt/node-toolchain/node_modules/${npm_tree}/node_modules/${package}" && \
+        test "$(/opt/node/bin/node -p \
+          'require(process.argv[1]).version' \
+          "/opt/node-toolchain/node_modules/${npm_tree}/node_modules/${package}/package.json")" \
+            = "${version}" || exit 1; \
+      done; \
     done && \
     undici_version="$(/opt/node/bin/node -p \
       "require('/opt/node-toolchain/package.json').dependencies.undici")" && \

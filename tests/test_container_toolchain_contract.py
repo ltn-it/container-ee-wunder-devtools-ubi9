@@ -180,7 +180,11 @@ class ContainerToolchainContractTests(unittest.TestCase):
             "@simple-git/argv-parser": "2.0.1",
         }
         for package, version in expected_renovate_security_overrides.items():
-            self.assertEqual(version, pnpm_workspace["overrides"][package])
+            selector = (
+                f"{package}@^{version.split('.')[0]}"
+                if package in {"brace-expansion", "undici"} else package
+            )
+            self.assertEqual(version, pnpm_workspace["overrides"][selector])
             self.assertEqual(version, pnpm_lock["overrides"][package])
             self.assertIn(f"{package}@{version}", pnpm_lock["packages"])
             self.assertTrue(
@@ -203,17 +207,31 @@ class ContainerToolchainContractTests(unittest.TestCase):
         }
         for package, version in expected_security_versions.items():
             self.assertEqual(version, container_package["dependencies"][package])
-            self.assertEqual(version, pnpm_workspace["overrides"][package])
+            selector = (
+                f"{package}@^{version.split('.')[0]}"
+                if package in {"brace-expansion", "undici"} else package
+            )
+            self.assertEqual(version, pnpm_workspace["overrides"][selector])
         for package in ("brace-expansion", "ip-address", "tar", "undici"):
             version = container_package["dependencies"][package]
             self.assertRegex(version, r"^\d+\.\d+\.\d+$")
-            self.assertEqual(version, pnpm_workspace["overrides"][package])
+            selector = (
+                f"{package}@^{version.split('.')[0]}"
+                if package in {"brace-expansion", "undici"} else package
+            )
+            self.assertEqual(version, pnpm_workspace["overrides"][selector])
             self.assertIn(package, dockerfile)
         for package, version in {"pacote": "21.5.1"}.items():
             self.assertEqual(version, container_package["dependencies"][package])
-            self.assertEqual(version, pnpm_workspace["overrides"][package])
-        self.assertIn(
-            "node_modules/npm-website/node_modules/${package}", dockerfile
+            selector = (
+                f"{package}@^{version.split('.')[0]}"
+                if package in {"brace-expansion", "undici"} else package
+            )
+            self.assertEqual(version, pnpm_workspace["overrides"][selector])
+        self.assertIn("for npm_tree in npm-website npm-repository; do", dockerfile)
+        self.assertIn("node_modules/${npm_tree}/node_modules/${package}", dockerfile)
+        self.assertEqual(
+            "npm:npm@11.19.1", container_package["dependencies"]["npm-repository"]
         )
         self.assertIn("for pnpm_tree in", dockerfile)
         for bundled_path in (
