@@ -164,7 +164,7 @@ class ContainerToolchainContractTests(unittest.TestCase):
             self.assertIn(argument, dockerfile)
         self.assertEqual("12.0.2", container_package["dependencies"]["npm"])
         self.assertEqual(
-            "npm:npm@11.16.0", container_package["dependencies"]["npm-website"]
+            "npm:npm@11.18.0", container_package["dependencies"]["npm-website"]
         )
         pnpm_version = container_package["dependencies"]["pnpm"]
         self.assertEqual(f"pnpm@{pnpm_version}", container_package["packageManager"])

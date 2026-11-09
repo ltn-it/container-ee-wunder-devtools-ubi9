@@ -423,7 +423,10 @@ RUN source /usr/local/lib/container-download-verified.sh && \
     /opt/node/bin/markdownlint-cli2 --version && \
     /opt/node/bin/prettier --version && \
     test "$(/opt/node-website/bin/node --version)" = "v${WEBSITE_NODE_VERSION}" && \
-    test "$(PATH=/opt/node-website/bin:${PATH} /opt/node-website/bin/npm --version)" = "11.16.0" && \
+    website_npm_pin="$(/opt/node/bin/node -p \
+      "require('/opt/node-toolchain/package.json').dependencies['npm-website']")" && \
+    [[ "$website_npm_pin" =~ ^npm:npm@[0-9]+\.[0-9]+\.[0-9]+$ ]] && \
+    test "$(PATH=/opt/node-website/bin:${PATH} /opt/node-website/bin/npm --version)" = "${website_npm_pin#npm:npm@}" && \
     rm -f /tmp/node.tar.xz /tmp/node-website.tar.xz /tmp/renovate.json && \
     rm -rf /tmp/pnpm-store /opt/node-toolchain/.npm
 
