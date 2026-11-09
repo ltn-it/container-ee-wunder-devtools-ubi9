@@ -9,10 +9,11 @@ ARG TARGETARCH
 ARG GO_VERSION=1.26.10
 ARG GO_AMD64_SHA256=ccfe7ae822d2c2f41f4fe7c956199967a4dac22d0ee0d2b2bfdb440aab3b20c5
 ARG GO_ARM64_SHA256=3f4227ce7b206a513e794f1393adb473a07b46e94d18bd15d1c684bbb7319797
-ARG GO_X_CRYPTO_VERSION=0.57.0
+ARG GO_X_CRYPTO_VERSION=0.58.0
 ARG GO_X_MOD_VERSION=0.40.0
-ARG GO_X_NET_VERSION=0.60.0
-ARG GO_X_TEXT_VERSION=0.42.0
+ARG GO_X_NET_VERSION=0.62.0
+ARG GO_X_TEXT_VERSION=0.43.0
+ARG GO_JOSE_VERSION=4.1.6
 ARG GO_GRPC_VERSION=1.83.2
 ARG GO_KLAUSPOST_COMPRESS_VERSION=1.18.7
 
@@ -79,6 +80,7 @@ RUN curl -fsSLo /tmp/cosign-tag.json \
       "-replace=github.com/sigstore/fulcio=github.com/sigstore/fulcio@v${COSIGN_FULCIO_VERSION}" \
       "-replace=github.com/sigstore/rekor=github.com/sigstore/rekor@v${COSIGN_REKOR_VERSION}" \
       "-replace=github.com/klauspost/compress=github.com/klauspost/compress@v${GO_KLAUSPOST_COMPRESS_VERSION}" \
+      "-replace=github.com/go-jose/go-jose/v4=github.com/go-jose/go-jose/v4@v${GO_JOSE_VERSION}" \
       "-replace=golang.org/x/crypto=golang.org/x/crypto@v${GO_X_CRYPTO_VERSION}" \
       "-replace=golang.org/x/mod=golang.org/x/mod@v${GO_X_MOD_VERSION}" \
       "-replace=golang.org/x/net=golang.org/x/net@v${GO_X_NET_VERSION}" \
@@ -109,6 +111,7 @@ RUN --network=none cd /tmp/cosign-source && \
       "github.com/sigstore/fulcio@v${COSIGN_FULCIO_VERSION}" \
       "github.com/sigstore/rekor@v${COSIGN_REKOR_VERSION}" \
       "github.com/klauspost/compress@v${GO_KLAUSPOST_COMPRESS_VERSION}" \
+      "github.com/go-jose/go-jose/v4@v${GO_JOSE_VERSION}" \
       "golang.org/x/crypto@v${GO_X_CRYPTO_VERSION}" \
       "golang.org/x/mod@v${GO_X_MOD_VERSION}" \
       "golang.org/x/net@v${GO_X_NET_VERSION}" \
@@ -131,7 +134,7 @@ ARG INCUS_VERSION=7.0.2
 ARG INCUS_SOURCE_COMMIT=01f81e5e607bbb5818410318e4b3496ad1820824
 ARG INCUS_SOURCE_SHA256=f2319b13151c3b4181b025a55e4199d60a1c829a24e422d8c6448a63da8a0ed9
 
-# Build only the Incus client with its unchanged upstream module lock.
+# Build only the pinned Incus client with the explicit x/net security fix.
 # This supplies no daemon, connection configuration, socket or credentials.
 RUN mkdir -p /out && \
     curl -fsSLo /tmp/incus.tar.gz \
@@ -141,7 +144,9 @@ RUN mkdir -p /out && \
     tar -xzf /tmp/incus.tar.gz --strip-components=1 -C /tmp/incus-source && \
     cd /tmp/incus-source && \
     grep -Fx "var Version = \"${INCUS_VERSION}\"" internal/version/flex.go && \
+    go mod edit "-replace=golang.org/x/net=golang.org/x/net@v${GO_X_NET_VERSION}" && \
     python3 /usr/local/lib/download_go_modules.py && \
+    GOPROXY=off go mod tidy && \
     GOPROXY=off go mod verify && \
     CGO_ENABLED=0 GOPROXY=off go build \
       -mod=readonly -trimpath -buildvcs=false -ldflags="-s -w" \
@@ -185,6 +190,7 @@ RUN curl -fsSLo /tmp/terraform.tar.gz \
     cd /tmp/terraform-source && \
     go mod edit "-require=google.golang.org/grpc@v${GO_GRPC_VERSION}" && \
     go mod edit \
+      "-replace=github.com/go-jose/go-jose/v4=github.com/go-jose/go-jose/v4@v${GO_JOSE_VERSION}" \
       "-replace=golang.org/x/crypto=golang.org/x/crypto@v${GO_X_CRYPTO_VERSION}" \
       "-replace=golang.org/x/net=golang.org/x/net@v${GO_X_NET_VERSION}" \
       "-replace=golang.org/x/text=golang.org/x/text@v${GO_X_TEXT_VERSION}" && \
@@ -210,6 +216,7 @@ RUN curl -fsSLo /tmp/packer.tar.gz \
     tar -xzf /tmp/packer.tar.gz --strip-components=1 -C /tmp/packer-source && \
     cd /tmp/packer-source && \
     go mod edit \
+      "-replace=github.com/go-jose/go-jose/v4=github.com/go-jose/go-jose/v4@v${GO_JOSE_VERSION}" \
       "-replace=golang.org/x/crypto=golang.org/x/crypto@v${GO_X_CRYPTO_VERSION}" \
       "-replace=golang.org/x/net=golang.org/x/net@v${GO_X_NET_VERSION}" \
       "-replace=golang.org/x/text=golang.org/x/text@v${GO_X_TEXT_VERSION}" && \
@@ -226,6 +233,7 @@ RUN curl -fsSLo /tmp/packer.tar.gz \
 
 RUN /usr/local/lib/container-build-go-tool.sh \
       github.com/terraform-linters/tflint "v${TFLINT_VERSION}" . tflint \
+      "github.com/go-jose/go-jose/v4@v${GO_JOSE_VERSION}" \
       "golang.org/x/mod@v${GO_X_MOD_VERSION}" \
       "golang.org/x/net@v${GO_X_NET_VERSION}" \
       "google.golang.org/grpc@v${GO_GRPC_VERSION}" \
@@ -266,6 +274,7 @@ RUN curl -fsSLo /tmp/docker-cli.tar.gz \
     cp vendor.mod go.mod && \
     cp vendor.sum go.sum && \
     GOFLAGS=-mod=mod go get \
+      "github.com/go-jose/go-jose/v4@v${GO_JOSE_VERSION}" \
       "golang.org/x/net@v${GO_X_NET_VERSION}" \
       "google.golang.org/grpc@v${GO_GRPC_VERSION}" && \
     test "$(GOFLAGS=-mod=mod go list -m -f '{{.Version}}' golang.org/x/net)" = \
@@ -310,7 +319,7 @@ RUN set -euo pipefail; \
     done
 
 RUN set -euo pipefail; \
-    for binary in packer terraform tflint terraform-docs helm gh docker docker-compose; do \
+    for binary in packer terraform tflint terraform-docs helm gh docker docker-compose incus; do \
       effective_version="$( \
         go version -m "/out/${binary}" | \
           awk -v module='golang.org/x/net' ' \
@@ -322,6 +331,23 @@ RUN set -euo pipefail; \
       if [ "${effective_version}" != "v${GO_X_NET_VERSION}" ]; then \
         printf 'ERROR: %s links golang.org/x/net %s, expected v%s\n' \
           "${binary}" "${effective_version:-<missing>}" "${GO_X_NET_VERSION}" >&2; \
+        exit 1; \
+      fi; \
+    done
+
+RUN set -euo pipefail; \
+    for binary in packer terraform tflint docker; do \
+      effective_version="$( \
+        go version -m "/out/${binary}" | \
+          awk -v module='github.com/go-jose/go-jose/v4' ' \
+            $1 == "dep" && $2 == module { version = $3 } \
+            $1 == "=>" && $2 == module { version = $3 } \
+            END { print version } \
+          ' \
+      )"; \
+      if [ "${effective_version}" != "v${GO_JOSE_VERSION}" ]; then \
+        printf 'ERROR: %s links go-jose/v4 %s, expected v%s\n' \
+          "${binary}" "${effective_version:-<missing>}" "${GO_JOSE_VERSION}" >&2; \
         exit 1; \
       fi; \
     done
@@ -360,7 +386,7 @@ RUN source /usr/local/lib/container-download-verified.sh && \
     /opt/node/bin/corepack "pnpm@${pnpm_version}" install \
       --frozen-lockfile --ignore-scripts --strict-peer-dependencies \
       --store-dir /tmp/pnpm-store && \
-    for npm_tree in npm npm-website; do \
+    for npm_tree in npm npm-website npm-repository; do \
       for package in brace-expansion ip-address tar undici; do \
         version="$(/opt/node/bin/node -p \
           'require(process.argv[1]).version' \
@@ -378,13 +404,15 @@ RUN source /usr/local/lib/container-download-verified.sh && \
       version="$(/opt/node/bin/node -p \
         'require(process.argv[1]).version' \
         "/opt/node-toolchain/node_modules/${package}/package.json")" && \
-      rm -rf "/opt/node-toolchain/node_modules/npm-website/node_modules/${package}" && \
-      cp -aL "/opt/node-toolchain/node_modules/${package}" \
-        "/opt/node-toolchain/node_modules/npm-website/node_modules/${package}" && \
-      test "$(/opt/node/bin/node -p \
-        'require(process.argv[1]).version' \
-        "/opt/node-toolchain/node_modules/npm-website/node_modules/${package}/package.json")" \
-          = "${version}" || exit 1; \
+      for npm_tree in npm-website npm-repository; do \
+        rm -rf "/opt/node-toolchain/node_modules/${npm_tree}/node_modules/${package}" && \
+        cp -aL "/opt/node-toolchain/node_modules/${package}" \
+          "/opt/node-toolchain/node_modules/${npm_tree}/node_modules/${package}" && \
+        test "$(/opt/node/bin/node -p \
+          'require(process.argv[1]).version' \
+          "/opt/node-toolchain/node_modules/${npm_tree}/node_modules/${package}/package.json")" \
+            = "${version}" || exit 1; \
+      done; \
     done && \
     undici_version="$(/opt/node/bin/node -p \
       "require('/opt/node-toolchain/package.json').dependencies.undici")" && \
@@ -423,7 +451,10 @@ RUN source /usr/local/lib/container-download-verified.sh && \
     /opt/node/bin/markdownlint-cli2 --version && \
     /opt/node/bin/prettier --version && \
     test "$(/opt/node-website/bin/node --version)" = "v${WEBSITE_NODE_VERSION}" && \
-    test "$(PATH=/opt/node-website/bin:${PATH} /opt/node-website/bin/npm --version)" = "11.16.0" && \
+    website_npm_pin="$(/opt/node/bin/node -p \
+      "require('/opt/node-toolchain/package.json').dependencies['npm-website']")" && \
+    [[ "$website_npm_pin" =~ ^npm:npm@[0-9]+\.[0-9]+\.[0-9]+$ ]] && \
+    test "$(PATH=/opt/node-website/bin:${PATH} /opt/node-website/bin/npm --version)" = "${website_npm_pin#npm:npm@}" && \
     rm -f /tmp/node.tar.xz /tmp/node-website.tar.xz /tmp/renovate.json && \
     rm -rf /tmp/pnpm-store /opt/node-toolchain/.npm
 
@@ -572,7 +603,7 @@ RUN test "${#VNU_SOURCE_COMMIT}" -eq 40 && \
     esac && \
     curl --fail --show-error --silent --location --retry 2 --retry-delay 2 \
       --output /tmp/vnu-jre.tar.gz \
-      "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-${VNU_JRE_VERSION/_/%2B}/OpenJDK17U-jre_${VNU_JRE_ARCH}_linux_hotspot_${VNU_JRE_VERSION}.tar.gz" && \
+      "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-${VNU_JRE_VERSION/_/%2B}/OpenJDK17U-jre_${VNU_JRE_ARCH}_linux_hotspot_${VNU_JRE_VERSION}.tar.gz?download=1" && \
     printf '%s  %s\n' "${VNU_JRE_SHA256}" /tmp/vnu-jre.tar.gz | \
       sha256sum --check --status && \
     mkdir -p /opt/java && \
@@ -600,6 +631,7 @@ USER 0
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Base tools you *actually* need at runtime.
+# Native libraries also support repository-pinned headless Chromium validation.
 # UBI 9 does not publish qemu-img/libguestfs packages. Use one immutable,
 # official CentOS Stream 9 production compose only for VM image tooling so
 # public GitHub builds neither depend on RHEL host entitlement nor race mutable
@@ -629,7 +661,9 @@ RUN dnf --setopt=retries=2 -y update && \
       > /etc/yum.repos.d/centos-stream-vm-image-tools.repo && \
     dnf --setopt=retries=2 -y install --allowerasing --setopt=install_weak_deps=False \
       bash git openssh-clients rsync which findutils ca-certificates \
-      rpm-build && \
+      rpm-build \
+      nspr nss atk at-spi2-atk at-spi2-core cups-libs libxkbcommon \
+      alsa-lib mesa-libgbm pango libXcomposite libXdamage libXfixes libXrandr && \
     dnf --setopt=retries=2 -y install --allowerasing --setopt=install_weak_deps=False \
       --enablerepo="centos-stream-compose-baseos" \
       --enablerepo="centos-stream-compose-appstream" \

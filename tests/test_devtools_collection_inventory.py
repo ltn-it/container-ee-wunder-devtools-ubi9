@@ -160,9 +160,9 @@ class DevtoolsCollectionInventoryTests(unittest.TestCase):
 
     def test_patched_go_crypto_is_forced_into_vulnerable_binaries(self) -> None:
         dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
-        self.assertIn("ARG GO_X_CRYPTO_VERSION=0.57.0", dockerfile)
-        self.assertIn("ARG GO_X_NET_VERSION=0.60.0", dockerfile)
-        self.assertIn("ARG GO_X_TEXT_VERSION=0.42.0", dockerfile)
+        self.assertIn("ARG GO_X_CRYPTO_VERSION=0.58.0", dockerfile)
+        self.assertIn("ARG GO_X_NET_VERSION=0.62.0", dockerfile)
+        self.assertIn("ARG GO_X_TEXT_VERSION=0.43.0", dockerfile)
         self.assertIn(
             'github.com/terraform-docs/terraform-docs "v${TF_DOCS_VERSION}" '
             ". terraform-docs \\\n"

@@ -31,7 +31,9 @@ pre-commit==4.6.2
 # Central test runner; Python >=3.10, validated against the image Python 3.11.
 pytest==9.1.1
 # Security fixes for activation paths, interpreter launchers and seed wheels.
-virtualenv==21.14.12
+virtualenv==21.15.6
+# Keep the security-fixed lock implementation across virtualenv/pre-commit.
+filelock==4.2.9
 # Fix CVE-2026-114134 in the transitive Black formatter dependency.
 black==26.10.1
 mypy==2.3.1
