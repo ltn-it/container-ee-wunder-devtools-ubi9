@@ -575,7 +575,7 @@ RUN test "${#VNU_SOURCE_COMMIT}" -eq 40 && \
     esac && \
     curl --fail --show-error --silent --location --retry 2 --retry-delay 2 \
       --output /tmp/vnu-jre.tar.gz \
-      "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-${VNU_JRE_VERSION/_/%2B}/OpenJDK17U-jre_${VNU_JRE_ARCH}_linux_hotspot_${VNU_JRE_VERSION}.tar.gz" && \
+      "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-${VNU_JRE_VERSION/_/%2B}/OpenJDK17U-jre_${VNU_JRE_ARCH}_linux_hotspot_${VNU_JRE_VERSION}.tar.gz?download=1" && \
     printf '%s  %s\n' "${VNU_JRE_SHA256}" /tmp/vnu-jre.tar.gz | \
       sha256sum --check --status && \
     mkdir -p /opt/java && \
